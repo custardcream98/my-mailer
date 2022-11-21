@@ -2,7 +2,7 @@ const { logger } = require("firebase-functions");
 const nodemailer = require("nodemailer");
 
 const mailer = async ({
-  receiverEmailAddress,
+  emailReceiver,
   title,
   content,
 }) => {
@@ -31,10 +31,12 @@ const mailer = async ({
 
   const message = {
     from: process.env.EMAIL_SENDER,
-    to: receiverEmailAddress,
+    to: emailReceiver,
     subject: title,
     html: content,
   };
+
+  console.log(emailReceiver);
 
   await new Promise((resolve, reject) => {
     transporter.sendMail(message, function (error, info) {

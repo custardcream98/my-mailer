@@ -15,12 +15,27 @@ const {
   handleErrors,
 } = require("./src/middlewares/errorHandler.middleware");
 
-let corsOptions = {
-  origin: "https://share-it-rust.vercel.app/",
-  credentials: true,
-};
+let allowedOrigins = [
+  "https://share-it-rust.vercel.app",
+  "http://localhost:3000",
+];
 
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not " +
+          "allow access from the specified Origin.";
+        console.log("NO CORS");
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+  })
+  // cors()
+);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "static")));
 
@@ -33,7 +48,7 @@ app.use(validateFirebaseIdToken);
 /**
  * 메일링
  */
-app.post("/sendMail", async (req, res) => {
+app.post("/sendMail", async (req, res, next) => {
   const {
     email_receiver: emailReceiver,
     post_title: postTitle,
@@ -51,9 +66,14 @@ app.post("/sendMail", async (req, res) => {
   });
 
   await mailer({
-    receiverEmailAddress: emailReceiver,
+    emailReceiver,
     title: `[Share it!] "${postTitle}" 에 ${username}님이 댓글을 다셨습니다.`,
-    content: `<h1>"${postTitle}" 에 ${username}님이 댓글을 다셨습니다.</h1><p>${comment}</p><p>바로 가기: <a href="${linkToPost}" target="_blank">${linkToPost}</a></p>`,
+    content: `
+    <h2>"${postTitle}" 에 ${username}님이 댓글을 다셨습니다.</h2>
+    <p>댓글 내용: ${comment}</p>
+    <p>
+      바로 가기: <a href="${linkToPost}" target="_blank">${linkToPost}</a>
+    </p>`,
   });
   return res
     .status(200)
